@@ -339,8 +339,8 @@ MongoDB integrates seamlessly with Node.js applications through the Mongoose ODM
 ```json id="t7q2am"
 {
   "_id": ObjectId,
-  "name": "PEDADA SAI KRISHNA",
-  "email": "23pa1a4287@vishnu.edu.in",
+  "name": "VARDHINEEDI DHARUN SAI RANJITH",
+  "email": "23pa1a42c4@vishnu.edu.in",
   "createdAt": ISODate("2026-04-22T17:51:18Z")
 }
 ```
