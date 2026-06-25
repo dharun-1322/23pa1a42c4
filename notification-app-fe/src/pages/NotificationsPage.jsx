@@ -1,82 +1,186 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Alert,
-  Badge,
   Box,
+  Card,
+  CardContent,
+  Chip,
   CircularProgress,
-  Divider,
   Pagination,
+  Paper,
   Stack,
   Typography,
 } from "@mui/material";
-import NotificationsIcon from "@mui/icons-material/Notifications";
+import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 
 import { NotificationCard } from "../components/NotificationCard";
 import { NotificationFilter } from "../components/NotificationFilter";
 import { useNotifications } from "../hooks/useNotifications";
+import Log from "../lib/logger";
 
 export function NotificationsPage() {
-  const [filter, setFilter] = useState();
-  const [page, setPage] = useState("1");
+  const [filter, setFilter] = useState("All");
+  const [page, setPage] = useState(1);
 
-  const { notifications, totalPages, loading, error } = useNotifications();
+  const {
+    notifications,
+    totalPages,
+    loading,
+    error,
+    unreadCount,
+    viewedIds,
+    markAsViewed,
+  } = useNotifications({ filter, page });
 
-  const unreadCount = 2;
+  useEffect(() => {
+    Log("backend", "info", "page", "Notifications page loaded");
+  }, []);
 
-  const handleFilterChange = (newFilter) => {
+  function handleFilterChange(newFilter) {
+    setFilter(newFilter);
+    setPage(1);
+  }
 
-  };
-
-  const handlePageChange = (_, newPage) => {
-
-  };
+  function handlePageChange(_, newPage) {
+    if (newPage < 1 || newPage > totalPages) return;
+    setPage(newPage);
+  }
 
   return (
-    <Box sx={{ maxWidth: 720, mx: "auto", px: 2, py: 4 }}>
-      <Stack direction="row" alignItems="center" spacing={1.5} mb={3}>
-        <Badge badgeContent={unreadCount} color="primary" max={99}>
-          <NotificationsIcon sx={{ fontSize: 28 }} />
-        </Badge>
-        <Typography variant="h5" fontWeight={700}>
-          Notifications
-        </Typography>
-      </Stack>
+    <Box
+      sx={{
+        maxWidth: 850,
+        mx: "auto",
+        px: 2,
+        py: 4,
+      }}
+    >
+      {/* Header */}
+      <Card
+        sx={{
+          mb: 3,
+          borderRadius: 4,
+          background:
+            "linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)",
+          color: "white",
+          boxShadow: 4,
+        }}
+      >
+        <CardContent>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <Stack direction="row" spacing={2} alignItems="center">
+              <NotificationsActiveIcon sx={{ fontSize: 40 }} />
+              <Box>
+                <Typography variant="h5" fontWeight={700}>
+                  Notifications
+                </Typography>
+                <Typography variant="body2">
+                  Stay updated with important announcements
+                </Typography>
+              </Box>
+            </Stack>
 
-      <Divider sx={{ mb: 3 }} />
+            <Chip
+              label={`${unreadCount} Unread`}
+              color="secondary"
+              sx={{
+                fontWeight: 600,
+                bgcolor: "white",
+              }}
+            />
+          </Stack>
+        </CardContent>
+      </Card>
 
-      <Box sx={{ marginBottom: 3 }}>
-        <NotificationFilter value={filter} onChange={handleFilterChange} />
-      </Box>
+      {/* Filter Section */}
+      <Paper
+        elevation={2}
+        sx={{
+          p: 2,
+          mb: 3,
+          borderRadius: 3,
+          position: "sticky",
+          top: 10,
+          zIndex: 10,
+        }}
+      >
+        <NotificationFilter
+          value={filter}
+          onChange={handleFilterChange}
+        />
+      </Paper>
 
-      {true && (
-        <Box display="flex" justifyContent="center" py={6}>
-          <CircularProgress />
+      {/* Loading */}
+      {loading && (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            py: 8,
+          }}
+        >
+          <CircularProgress size={50} />
         </Box>
       )}
 
+      {/* Error */}
       {!loading && error && (
-        <Alert severity="error">Failed to load notifications: {error}</Alert>
+        <Alert severity="error" sx={{ borderRadius: 2 }}>
+          Failed to load notifications: {error}
+        </Alert>
       )}
 
-      {loading && !error && notifications.length == "0" && (
-        <Alert severity="info">Something message</Alert>
+      {/* Empty State */}
+      {!loading && !error && notifications.length === 0 && (
+        <Paper
+          sx={{
+            textAlign: "center",
+            p: 5,
+            borderRadius: 3,
+          }}
+        >
+          <Typography variant="h6">
+            No Notifications Found
+          </Typography>
+          <Typography color="text.secondary">
+            Try changing the selected filter.
+          </Typography>
+        </Paper>
       )}
 
-      {loading && !error && notifications.length > 0 && (
-        <Stack spacing={1.5}>
-          {notifications.map((n) => (
-            <></>
+      {/* Notifications */}
+      {!loading && !error && notifications.length > 0 && (
+        <Stack spacing={2}>
+          {notifications.map((notification) => (
+            <NotificationCard
+              key={notification.ID}
+              notification={notification}
+              viewed={viewedIds.has(notification.ID)}
+              onView={() => markAsViewed(notification.ID)}
+            />
           ))}
         </Stack>
       )}
 
-      {!loading && (
-        <Box display="flex" justifyContent="center" mt={4}>
+      {/* Pagination */}
+      {!loading && totalPages > 1 && (
+        <Box
+          sx={{
+            mt: 4,
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
           <Pagination
             count={totalPages}
             page={page}
             onChange={handlePageChange}
             color="primary"
+            size="large"
             shape="rounded"
           />
         </Box>
