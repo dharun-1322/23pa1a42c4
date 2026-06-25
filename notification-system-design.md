@@ -1110,4 +1110,118 @@ To build a scalable and fault-tolerant notification platform:
 * RabbitMQ helps absorb traffic spikes, improve reliability, and enable independent scaling of system components.
 
 This architecture provides a robust foundation for handling large-scale notification workloads while maintaining responsiveness and reliability.
+# Stage 6: Priority-Based Notification Display
+
+## Overview
+
+As the number of notifications grows, displaying them solely based on creation time may cause important updates to become less visible.
+
+To improve usability and ensure students can quickly access critical information, notifications should be displayed according to their priority level rather than relying only on chronological order.
+
+This approach ensures that the most important notifications appear at the top of the dashboard while still preserving recency within each category.
+
+---
+
+# Notification Priority Levels
+
+The system assigns the following priority order to notification categories:
+
+| Priority | Notification Type |
+| -------- | ----------------- |
+| 1        | Placement         |
+| 2        | Result            |
+| 3        | Event             |
+
+Notifications with a higher priority are displayed before those with a lower priority.
+
+For example:
+
+* Placement notifications appear first.
+* Result notifications appear after placement updates.
+* Event notifications are displayed last.
+
+---
+
+# SQL Query
+
+The following query retrieves notifications for a student and orders them according to the defined priority hierarchy.
+
+```sql
+SELECT *
+FROM notifications
+WHERE student_id = ?
+ORDER BY
+    CASE
+        WHEN type = 'Placement' THEN 1
+        WHEN type = 'Result' THEN 2
+        WHEN type = 'Event' THEN 3
+    END,
+    created_at DESC;
+```
+
+### Query Logic
+
+1. The `CASE` expression assigns a numeric priority to each notification category.
+2. Notifications are first sorted based on their assigned priority.
+3. Within the same category, notifications are sorted by `created_at DESC`.
+4. The newest notifications appear first within each priority group.
+
+---
+
+# Benefits of Priority-Based Sorting
+
+Implementing category-based prioritization provides several advantages.
+
+## Improved Visibility of Critical Updates
+
+Placement opportunities are always displayed at the top, ensuring students do not miss important career-related announcements.
+
+## Better Academic Awareness
+
+Result notifications receive higher priority than general announcements, helping students quickly access examination-related updates.
+
+## Enhanced Organization
+
+Notifications belonging to the same category are arranged from newest to oldest, making recent information easier to locate.
+
+## Improved User Experience
+
+Students can identify high-priority information immediately without scrolling through a long list of less important notifications.
+
+---
+
+# Example Display Order
+
+Assume the following notifications exist:
+
+| Type      | Title                      | Created At |
+| --------- | -------------------------- | ---------- |
+| Event     | Tech Fest Registration     | 10:00 AM   |
+| Placement | Microsoft Hiring Drive     | 09:00 AM   |
+| Result    | Semester Results Published | 11:00 AM   |
+| Placement | Amazon Placement Drive     | 08:00 AM   |
+
+The displayed order would be:
+
+1. Microsoft Hiring Drive (Placement)
+2. Amazon Placement Drive (Placement)
+3. Semester Results Published (Result)
+4. Tech Fest Registration (Event)
+
+Even though some notifications are newer, the priority ranking ensures that more important categories appear first.
+
+---
+
+# Summary
+
+Priority-based notification ordering significantly improves the effectiveness of the notification dashboard.
+
+By combining:
+
+* **Category-based prioritization** (Placement → Result → Event)
+* **Chronological ordering** within each category
+
+the system presents the most important updates first while maintaining a clear and organized notification list.
+
+This approach enhances usability, improves visibility of critical information, and helps students stay informed about opportunities and academic updates in a timely manner.
 
