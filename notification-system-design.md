@@ -966,3 +966,148 @@ To enhance the performance and scalability of the notification platform:
 * Cache consistency should be maintained through proper invalidation whenever notification data changes.
 * **Socket.IO** should be integrated to provide real-time notification delivery through persistent WebSocket connections.
 * The combination of Redis and Socket.IO results in faster responses, reduced backend workload, improved scalability, and a better user experience.
+# Stage 5: Asynchronous Notification Processing
+
+## Overview
+
+As the notification platform scales to support a growing number of users and increasing notification traffic, delivering notifications synchronously through the API can introduce latency and reduce system responsiveness.
+
+To improve scalability, reliability, and fault tolerance, I would introduce a message broker such as **RabbitMQ** between the Notification API and the notification delivery service.
+
+Instead of sending notifications directly during the API request cycle, the application stores the notification in the database and publishes a message to RabbitMQ. Dedicated background workers then consume messages from the queue and handle delivery independently.
+
+This architecture decouples notification creation from notification delivery, allowing the system to process requests more efficiently.
+
+---
+
+# Notification Processing Workflow
+
+The notification lifecycle would follow the sequence below:
+
+### Step 1: Persist Notification
+
+The Notification API receives a request and stores the notification in the MySQL database.
+
+### Step 2: Publish Message
+
+After successful persistence, the API publishes a notification message to RabbitMQ.
+
+### Step 3: Queue Storage
+
+RabbitMQ places the message into the appropriate queue and makes it available for processing.
+
+### Step 4: Message Consumption
+
+A background worker continuously listens for incoming messages and retrieves them from the queue.
+
+### Step 5: Notification Delivery
+
+The worker processes the message and delivers the notification to the intended user through Socket.IO.
+
+### Step 6: Retry Handling
+
+If delivery fails due to a temporary issue such as a network interruption or service outage, the worker automatically retries the operation a predefined number of times.
+
+### Step 7: Dead Letter Queue (DLQ)
+
+If the notification still cannot be delivered after all retry attempts, RabbitMQ moves the message to a **Dead Letter Queue (DLQ)** for further investigation, monitoring, or manual processing.
+
+---
+
+# Why Asynchronous Processing?
+
+In a synchronous design, the API must wait for the notification delivery process to complete before responding to the client.
+
+With asynchronous processing:
+
+* The notification is queued immediately.
+* The API responds without waiting for delivery.
+* Background workers handle delivery separately.
+
+This significantly improves application responsiveness and user experience.
+
+---
+
+# Architectural Benefits
+
+Using RabbitMQ as a message broker provides several advantages.
+
+## Faster API Responses
+
+Notification delivery occurs in the background, allowing API requests to complete quickly.
+
+## Independent Scalability
+
+Worker processes can be scaled independently based on notification volume without affecting the API layer.
+
+## Improved Reliability
+
+Built-in retry mechanisms help recover from temporary failures and increase delivery success rates.
+
+## Fault Tolerance
+
+Failed messages are preserved in a Dead Letter Queue rather than being lost, enabling troubleshooting and recovery.
+
+## Traffic Spike Management
+
+RabbitMQ acts as a buffer between producers and consumers, smoothing sudden surges in notification traffic and preventing backend overload.
+
+## Better System Decoupling
+
+The API and notification delivery services operate independently, making the architecture easier to maintain and extend.
+
+---
+
+# High-Level System Architecture
+
+```text
+Client
+   │
+   ▼
+Notification API
+   │
+   ▼
+MySQL Database
+   │
+   ▼
+RabbitMQ Exchange / Queue
+   │
+   ▼
+Background Worker
+   │
+   ▼
+Socket.IO Server
+   │
+   ▼
+Connected Users
+```
+
+---
+
+# Component Responsibilities
+
+| Component               | Responsibility                                                   |
+| ----------------------- | ---------------------------------------------------------------- |
+| Client                  | Sends notification requests and receives updates                 |
+| Notification API        | Validates requests, stores notifications, and publishes messages |
+| MySQL Database          | Persists notification records                                    |
+| RabbitMQ                | Queues notification delivery tasks                               |
+| Background Worker       | Consumes and processes queued messages                           |
+| Socket.IO Server        | Delivers notifications in real time                              |
+| Dead Letter Queue (DLQ) | Stores messages that repeatedly fail processing                  |
+
+---
+
+# Summary
+
+To build a scalable and fault-tolerant notification platform:
+
+* Notifications should be stored in MySQL and published to RabbitMQ.
+* Dedicated background workers should process queued messages and handle delivery.
+* Notification delivery should occur asynchronously to keep API responses fast.
+* Retry mechanisms should be implemented to handle transient failures.
+* Messages that continue to fail should be moved to a Dead Letter Queue (DLQ) for further analysis.
+* RabbitMQ helps absorb traffic spikes, improve reliability, and enable independent scaling of system components.
+
+This architecture provides a robust foundation for handling large-scale notification workloads while maintaining responsiveness and reliability.
+
